@@ -1,21 +1,8 @@
 from transformers import AutoTokenizer, AutoModelForTokenClassification, pipeline
+from data import import_buenzli, import_NOAH_sentences
 import json
 import tqdm
-
-def import_buenzli(path) -> list[dict[str, str]]:
-    """
-    import the buenzli corpus as sentences
-    """
-    with open(path, "r") as f:
-        comments = json.load(f)
-
-    sentences = []
-    for comment in comments:
-        sentences.append(comment)
-
-    return sentences
-
-
+import threading
 
 model = AutoModelForTokenClassification.from_pretrained("noeminaepli/swiss_german_pos_model")
 tokenizer = AutoTokenizer.from_pretrained("noeminaepli/swiss_german_pos_model")
@@ -33,12 +20,10 @@ def pos_tag(text: str) -> list[dict]:
     return pos_tagger(text)
 
 def tag_buenzli():
-    word_limit = 7000
     # import the comments
     comments = import_buenzli("comments.json")
     # iterate over the comments and tag them
-    print(f"applying POS tags to {word_limit if word_limit else len(comments)} words in buenzli corpus")
-    for comment in tqdm.tqdm(comments[:word_limit]):
+    for comment in tqdm.tqdm(comments):
         pos_tags = []
         for word in comment["body"].split():
             word.lower().strip(".,!?;:()[]{}")
@@ -54,20 +39,7 @@ def tag_buenzli():
 
     # write the comments to a new json file
     with open("comments_pos.json", "w") as f:
-        json.dump(comments[:word_limit], f, indent=4)
-
-def tag_NOAH():
-    # import the sentences
-    sentences = import_NOAH_sentences("../NOAH-Corpus")
-    # iterate over the sentences and tag them
-    tagged_sentences = []
-    for sentence in tqdm.tqdm(sentences):
-        tagged_sentences.append(pos_tag(sentence))
-
-    # write the sentences to a new file
-    with open("NOAH_sentences_pos.csv", "w") as f:
-        for sentence in tagged_sentences:
-            f.write(sentence + "\n")
+        json.dump(comments, f, indent=4)
 
 
 if __name__ == "__main__":
